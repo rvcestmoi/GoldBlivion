@@ -1,0 +1,17 @@
+Charles(Normal) :
+Si Humain : tire 2 dés et demande au joueur de perdre 2 pépites d'or
+Si elfe : 1 or par niveau d'elfe
+Si nain : On demande de détruire une tuile révélée et ajouter les ressources + demander de reveler une tuile
+Si marché : gagner une caisse + on demande de détruire 2 cartes marchés 
+
+Jade(Difficile) :
+Si Humain : tire 1 dé par niveau d'humain
+Si elfe : 2 ors par niveau d'elfe
+Si nain : demander de reveler une tuile + On demande de détruire une tuile révélée et ajouter les ressources
+Si marché : gagner une caisse + on demande de détruire 2 cartes marchés 
+
+Blaze (difficile)
+Si Humain : gange 2 or par niveau d'humain
+Si elfe : 1 ors par niveau d'elfe
+Si nain : On demande de détruire une tuile révélée et ajouter les ressources + tirer un dé
+Si marché : on demande de détruire 2 cartes marchés + révéler une tuile + gange 3 ors

@@ -2,12 +2,12 @@
 <html lang="fr">
 <head>
   <meta charset="UTF-8">
-  <title>Goldblivion Automate - Version Complète</title>
+  <title>Goldblivion Automate - Full Correction</title>
   <style>
-    body { font-family: Arial, sans-serif; margin: 0; padding: 0; background: #f5f5f5; }
+    body { font-family: Arial, sans-serif; margin: 0; padding: 0; background: #f5f5f5; position: relative; }
     header { display: flex; justify-content: space-between; align-items: center; padding: 10px 20px; background: #ddd; }
     .factions, .resources { display: flex; align-items: center; }
-    .faction, .resource { margin-right: 20px; text-align: center; }
+    .faction, .resource { margin-right: 20px; text-align: center; position: relative; }
     .faction img, .resource img { width: 50px; height: 50px; }
     .faction-name { font-weight: bold; margin-top: 5px; }
     .param-controls { display: flex; justify-content: center; align-items: center; margin-top: 5px; }
@@ -19,18 +19,33 @@
     .hidden { display: none; }
     button { margin: 5px; padding: 8px 12px; }
 
-    /* Styles des logs */
     .log-entry { margin: 5px 0; }
     .log-info { color: black; }
     .log-or { color: goldenrod; font-weight: bold; }
     .log-lingot { color: purple; font-weight: bold; }
+
+    .spark {
+      position: absolute;
+      width: 20px;
+      height: 20px;
+      background: gold;
+      border-radius: 50%;
+      animation: sparkMove 1s forwards;
+      z-index: 1000;
+    }
+
+    @keyframes sparkMove {
+      0% { opacity: 1; transform: translate(0, 0) scale(1); }
+      100% { opacity: 0; transform: translate(var(--dx), var(--dy)) scale(0.2); }
+    }
   </style>
 </head>
+
 <body>
 
 <header>
   <div class="factions">
-    <div class="faction">
+    <div class="faction" id="humains-section">
       <img src="images/humains.png" alt="Humains">
       <div class="faction-name">Humains</div>
       <div class="param-controls">
@@ -39,7 +54,7 @@
         <button onclick="changeParam('humains', 1)">+</button>
       </div>
     </div>
-    <div class="faction">
+    <div class="faction" id="elfes-section">
       <img src="images/elfes.png" alt="Elfes">
       <div class="faction-name">Elfes</div>
       <div class="param-controls">
@@ -48,7 +63,7 @@
         <button onclick="changeParam('elfes', 1)">+</button>
       </div>
     </div>
-    <div class="faction">
+    <div class="faction" id="nains-section">
       <img src="images/nains.png" alt="Nains">
       <div class="faction-name">Nains</div>
       <div class="param-controls">
@@ -57,7 +72,7 @@
         <button onclick="changeParam('nains', 1)">+</button>
       </div>
     </div>
-    <div class="faction">
+    <div class="faction" id="marches-section">
       <img src="images/marches.png" alt="Marché">
       <div class="faction-name">Marché</div>
       <div class="param-controls">
@@ -68,16 +83,25 @@
     </div>
   </div>
 
-  <div class="resources">
-    <div class="resource">
-      <img src="images/or.png" alt="Or">
-      <div>Or: <span id="or">0</span></div>
-    </div>
-    <div class="resource">
-      <img src="images/lingot.png" alt="Lingot">
-      <div>Lingots: <span id="lingots">0</span></div>
+<div class="resources">
+  <div class="resource" id="or-section">
+    <img src="images/or.png" alt="Or">
+    <div>Or: <span id="or">0</span></div>
+    <div class="param-controls">
+      <button onclick="changeParam('or', -1)">-</button>
+      <button onclick="changeParam('or', 1)">+</button>
     </div>
   </div>
+  <div class="resource" id="lingot-section">
+    <img src="images/lingot.png" alt="Lingot">
+    <div>Lingots: <span id="lingots">0</span></div>
+    <div class="param-controls">
+      <button onclick="changeParam('lingots', -1)">-</button>
+      <button onclick="changeParam('lingots', 1)">+</button>
+    </div>
+  </div>
+</div>
+
 </header>
 
 <div id="game">
@@ -112,18 +136,65 @@
 <script>
 let params = { or: 0, lingots: 0, humains: 0, elfes: 0, nains: 0, marches: 0 };
 let difficulty = "Ariane";
+let factionChoisie = false;
 
 document.getElementById('new-game').addEventListener('click', () => {
   resetParams();
-  logInfo("Nouvelle partie commencée !");
+  document.getElementById('new-game').classList.add('hidden');
   document.getElementById('new-turn').classList.remove('hidden');
   document.getElementById('end-turn').classList.add('hidden');
+  factionChoisie = false;
+  logInfo("Nouvelle partie commencée !");
 });
 
-function resetParams() {
-  for (let key in params) {
-    params[key] = 0;
+document.getElementById('new-turn').addEventListener('click', () => {
+  clearLog();
+  lancerDeInitial();
+  document.getElementById('faction-buttons').classList.remove('hidden');
+  updateButtonVisibility('newTurn');
+  factionChoisie = false;
+});
+
+document.getElementById('end-turn').addEventListener('click', () => {
+  if (!factionChoisie) {
+    logInfo("Vous devez choisir une faction avant de finir le tour !");
+    return;
   }
+  checkForLingot();
+  document.getElementById('faction-buttons').classList.add('hidden');
+  updateButtonVisibility('endTurn');
+  logInfo("Fin du tour.");
+});
+
+function chooseFaction(faction) {
+  params[faction]++;
+  updateDisplay();
+  document.getElementById('faction-buttons').classList.add('hidden');
+  performAction(faction);
+  factionChoisie = true;
+  launchSpark(faction);
+}
+
+function performAction(faction) {
+  if (difficulty === "Ariane") {
+    if (faction === "humains") {
+      rollDice(2);
+    } else if (faction === "elfes") {
+      params.or += params.elfes;
+      logOr(`+${params.elfes} ors gagnés grâce aux Elfes.`);
+    } else if (faction === "nains") {
+      params.or += 2;
+      logOr("+2 ors : Nain détruit une tuile.");
+    } else if (faction === "marches") {
+      logInfo("Détruisez 2 cartes marché.");
+      rollDice(1);
+    }
+  }
+  updateDisplay();
+}
+
+function resetParams() {
+  for (let key in params) { params[key] = 0; }
   updateDisplay();
   clearLog();
 }
@@ -144,146 +215,56 @@ function updateDisplay() {
   }
 }
 
-document.getElementById('new-turn').addEventListener('click', () => {
-  clearLog();
-  lancerDeInitial();
-  document.getElementById('faction-buttons').classList.remove('hidden');
-  updateButtonVisibility('newTurn');
-});
-
-document.getElementById('end-turn').addEventListener('click', () => {
-  checkForLingot();
-  document.getElementById('faction-buttons').classList.add('hidden');
-  updateButtonVisibility('endTurn');
-  logInfo("Fin du tour.");
-});
-
-function chooseFaction(faction) {
-  params[faction]++;
-  updateDisplay();
-  document.getElementById('faction-buttons').classList.add('hidden');
-  performAction(faction);
-  if (params[faction] >= 6) {
-    logInfo(`Votre ${faction} est à 6 ou plus ! Action effectuée une seconde fois automatiquement.`);
-    performAction(faction);
-  }
-}
-
-function performAction(faction) {
-  if (difficulty === "Ariane") {
-    arianeActions(faction);
-  } else if (difficulty === "Charles") {
-    charlesActions(faction);
-  } else if (difficulty === "Jade") {
-    jadeActions(faction);
-  } else if (difficulty === "Blaze") {
-    blazeActions(faction);
-  }
-  updateDisplay();
-}
-
-function arianeActions(faction) {
-  if (faction === 'humains') {
-    rollDice(2);
-  } else if (faction === 'elfes') {
-    params['or'] += params['elfes'];
-    logOr(`L'automate gagne ${params['elfes']} ors grâce aux Elfes.`);
-  } else if (faction === 'nains') {
-    params['or'] += 2;
-    logOr("Détruisez une tuile révélée.");
-  } else if (faction === 'marches') {
-    logInfo("Détruisez 2 cartes de marché.");
-    rollDice(1);
-  }
-}
-
-function charlesActions(faction) {
-  if (faction === 'humains') {
-    rollDice(2);
-    params['or'] = Math.max(0, params['or'] - 2);
-    logInfo("L'automate perd 2 ors.");
-  } else if (faction === 'elfes') {
-    params['or'] += params['elfes'];
-    logOr(`L'automate gagne ${params['elfes']} ors grâce aux Elfes.`);
-  } else if (faction === 'nains') {
-    params['or'] += 2;
-    logOr("Détruisez une tuile + révélez une autre.");
-  } else if (faction === 'marches') {
-    params['or'] += 2;
-    logOr("Gagnez une caisse (+2 ors) + détruisez 2 marchés.");
-  }
-}
-
-function jadeActions(faction) {
-  if (faction === 'humains') {
-    rollDice(params['humains']);
-  } else if (faction === 'elfes') {
-    params['or'] += 2 * params['elfes'];
-    logOr(`L'automate gagne ${2 * params['elfes']} ors.`);
-  } else if (faction === 'nains') {
-    params['or'] += 2;
-    logOr("Révélez une tuile + détruisez une autre tuile.");
-  } else if (faction === 'marches') {
-    params['or'] += 2;
-    logOr("Gagnez une caisse + détruisez 2 marchés.");
-  }
-}
-
-function blazeActions(faction) {
-  if (faction === 'humains') {
-    params['or'] += 2 * params['humains'];
-    logOr(`L'automate gagne ${2 * params['humains']} ors.`);
-  } else if (faction === 'elfes') {
-    params['or'] += params['elfes'];
-    logOr(`L'automate gagne ${params['elfes']} ors.`);
-  } else if (faction === 'nains') {
-    params['or'] += 2;
-    logOr("Détruisez une tuile + tirez un dé.");
-    rollDice(1);
-  } else if (faction === 'marches') {
-    params['or'] += 3;
-    logOr("Détruisez 2 marchés + révélez une tuile + gagnez 3 ors.");
-  }
-}
-
-function rollDice(times) {
-  for (let i = 0; i < times; i++) {
-    let roll = Math.ceil(Math.random() * 6);
-    if (roll <= 2) {
-      params['or'] += 1;
-      logOr("Dé : +1 or");
-    } else if (roll <= 4) {
-      params['or'] += 2;
-      logOr("Dé : +2 ors");
-    } else if (roll === 5) {
-      params['or'] += 2;
-      logOr("Dé : Caisse (+2 ors)");
-    } else {
-      logInfo("Dé : Jeton Magie - révélez une tuile.");
-      rollDice(1);
-    }
-  }
-}
-
 function lancerDeInitial() {
   let roll = Math.ceil(Math.random() * 6);
   let img = document.getElementById('dice-image');
   img.style.display = "block";
   if (roll <= 2) img.src = "images/or1.png";
   else if (roll <= 4) img.src = "images/or2.png";
-  else if (roll === 5) img.src = "images/caisse.png";
+  else if (roll == 5) img.src = "images/caisse.png";
   else img.src = "images/magie.png";
 }
 
-function checkForLingot() {
-  let lingotsGagnes = 0;
-  while (params['or'] >= 7) {
-    params['or'] -= 7;
-    params['lingots']++;
-    lingotsGagnes++;
+function launchSpark(faction) {
+  let from = document.getElementById(faction + "-section");
+  let to = document.getElementById('or-section');
+  let rectFrom = from.getBoundingClientRect();
+  let rectTo = to.getBoundingClientRect();
+  let spark = document.createElement('div');
+  spark.className = 'spark';
+  spark.style.left = rectFrom.left + 25 + "px";
+  spark.style.top = rectFrom.top + 25 + "px";
+  spark.style.setProperty('--dx', (rectTo.left - rectFrom.left) + 'px');
+  spark.style.setProperty('--dy', (rectTo.top - rectFrom.top) + 'px');
+  document.body.appendChild(spark);
+  setTimeout(() => { spark.remove(); }, 1000);
+}
+
+function rollDice(times) {
+  for (let i = 0; i < times; i++) {
+    let roll = Math.ceil(Math.random() * 6);
+    if (roll <= 2) {
+      params.or += 1;
+      logOr("+1 or gagné.");
+    } else if (roll <= 4) {
+      params.or += 2;
+      logOr("+2 ors gagnés.");
+    } else if (roll === 5) {
+      params.or += 2;
+      logOr("+2 ors grâce à une caisse.");
+    } else {
+      logInfo("Jeton Magie révélé !");
+      rollDice(1);
+    }
   }
-  if (lingotsGagnes > 0) {
-    logLingot(`L'automate a fabriqué ${lingotsGagnes} lingot(s) !`);
+  updateDisplay();
+}
+
+function checkForLingot() {
+  while (params.or >= 7) {
+    params.or -= 7;
+    params.lingots++;
+    logLingot("Un lingot a été créé !");
   }
   updateDisplay();
 }
@@ -299,30 +280,24 @@ function updateButtonVisibility(state) {
 }
 
 function logInfo(message) {
-  const logDiv = document.getElementById('log');
   const entry = document.createElement('div');
   entry.className = 'log-entry log-info';
   entry.textContent = message;
-  logDiv.appendChild(entry);
-  logDiv.scrollTop = logDiv.scrollHeight;
+  document.getElementById('log').appendChild(entry);
 }
 
 function logOr(message) {
-  const logDiv = document.getElementById('log');
   const entry = document.createElement('div');
   entry.className = 'log-entry log-or';
   entry.textContent = message;
-  logDiv.appendChild(entry);
-  logDiv.scrollTop = logDiv.scrollHeight;
+  document.getElementById('log').appendChild(entry);
 }
 
 function logLingot(message) {
-  const logDiv = document.getElementById('log');
   const entry = document.createElement('div');
   entry.className = 'log-entry log-lingot';
   entry.textContent = message;
-  logDiv.appendChild(entry);
-  logDiv.scrollTop = logDiv.scrollHeight;
+  document.getElementById('log').appendChild(entry);
 }
 
 function clearLog() {

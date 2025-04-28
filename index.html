@@ -23,6 +23,11 @@
     .log-info { color: black; }
     .log-or { color: goldenrod; font-weight: bold; }
     .log-lingot { color: purple; font-weight: bold; }
+	.log-magic {
+	  color: red;
+	  font-weight: bold;
+	}
+
 
     .spark {
       position: absolute;
@@ -167,7 +172,7 @@
 
 <script>
 let params = { or: 0, lingots: 0, humains: 0, elfes: 0, nains: 0, marches: 0, caisses: 0 };
-let difficulty = "Ariane";
+let difficulty = document.getElementById('difficulty').value;
 let factionChoisie = false;
 
 document.getElementById('new-game').addEventListener('click', () => {
@@ -176,13 +181,14 @@ document.getElementById('new-game').addEventListener('click', () => {
   document.getElementById('new-turn').classList.remove('hidden');
   document.getElementById('end-turn').classList.add('hidden');
   factionChoisie = false;
+  document.getElementById('difficulty-select').classList.add('hidden');
   logInfo("Nouvelle partie commencée !");
 });
 
 document.getElementById('new-turn').addEventListener('click', () => {
   clearLog();
   lancerDeInitial();
-  document.getElementById('faction-buttons').classList.remove('hidden');
+  document.getElementById('faction-buttons').classList.remove('hidden');  
   updateButtonVisibility('newTurn');
   factionChoisie = false;
 });
@@ -234,9 +240,9 @@ function arianeActions(faction) {
     logOr(`L'automate gagne ${params['elfes']} ors grâce aux Elfes.`);
   } else if (faction === 'nains') {
     params['or'] += 2;
-    logOr("Détruisez une tuile révélée.");
+    logMagic("Détruisez une tuile révélée.");
   } else if (faction === 'marches') {
-    logInfo("Détruisez 2 cartes de marché.");
+    logMagic("Détruisez 2 cartes de marché.");
     rollDice(1);
   }
 }
@@ -244,16 +250,16 @@ function arianeActions(faction) {
 function charlesActions(faction) {
   if (faction === 'humains') {
     rollDice(2);
-    logInfo("Perdez 2 ors.");
+    logOr("Perdez 2 ors.");
   } else if (faction === 'elfes') {
     params['or'] += params['elfes'];
     logOr(`L'automate gagne ${params['elfes']} ors grâce aux Elfes.`);
   } else if (faction === 'nains') {
     params['or'] += 2;
-    logOr("Détruisez une tuile révélée et révélez une autre tuile.");
+    logMagic("Détruisez une tuile révélée et révélez une autre tuile.");
   } else if (faction === 'marches') {
-    params['or'] += 2;
-    logOr("Gagnez une caisse (+2 ors) et détruisez 2 cartes de marché.");
+    params['caisse'] += 1;
+    logMagic("Détruisez 2 cartes de marché.");
   }
 }
 
@@ -265,10 +271,10 @@ function jadeActions(faction) {
     logOr(`L'automate gagne ${2 * params['elfes']} ors grâce aux Elfes.`);
   } else if (faction === 'nains') {
     params['or'] += 2;
-    logOr("Révélez une tuile + détruisez une tuile révélée.");
+    logMagic("Révélez une tuile + détruisez une tuile révélée.");
   } else if (faction === 'marches') {
-    params['or'] += 2;
-    logOr("Gagnez une caisse (+2 ors) et détruisez 2 cartes de marché.");
+    params['caisse'] += 1;
+    logMagic("Détruisez 2 cartes de marché.");
   }
 }
 
@@ -280,12 +286,12 @@ function blazeActions(faction) {
     params['or'] += params['elfes'];
     logOr(`L'automate gagne ${params['elfes']} ors grâce aux Elfes.`);
   } else if (faction === 'nains') {
-    params['or'] += 2;
-    logOr("Détruisez une tuile + tirez un dé.");
+    logMagic("Détruisez une tuile révélée.");
     rollDice(1);
   } else if (faction === 'marches') {
     params['or'] += 3;
-    logOr("Détruisez 2 cartes de marché, révélez une tuile et gagnez 3 ors.");
+    logMagic("Détruisez 2 cartes de marché.");
+	logMagic("Révélez une tuile.");
   }
 }
 
@@ -357,7 +363,7 @@ function rollDice(times) {
 
 function handleMagic() {
   if (difficulty === "Ariane") {
-    logInfo("Dé Magie : Révélez une tuile masquée");
+    logMagic("Dé Magie : Révélez une tuile masquée");
     rollDice(1);
   } else if (difficulty === "Charles") {
     params.or += 1;
@@ -365,15 +371,16 @@ function handleMagic() {
     rollDice(1);
   } else if (difficulty === "Jade") {
     params.or = Math.max(0, params.or - 1);
-    logInfo("Dé Magie : Perdez 1 or");
+    logMagic("Dé Magie : Perdez 1 or");
     rollDice(1);
   } else if (difficulty === "Blaze") {
     params.or = Math.max(0, params.or - 3);
-    logInfo("Dé Magie : Révélez une tuile et perdez 3 ors.");
+    logMagic("Dé Magie : Révélez une tuile et perdez 3 ors.");
     // PAS de relance pour Blaze
   }
   updateDisplay();
 }
+
 
 
 
@@ -467,6 +474,13 @@ function logLingot(message) {
   entry.textContent = message;
   document.getElementById('log').appendChild(entry);
 }
+function logMagic(message) {
+  const entry = document.createElement('div');
+  entry.className = 'log-entry log-magic';
+  entry.textContent = message;
+  document.getElementById('log').appendChild(entry);
+}
+
 
 function clearLog() {
   document.getElementById('log').innerHTML = "";

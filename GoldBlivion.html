@@ -1,0 +1,219 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <title>Goldblivion Automate - Version Pimpée</title>
+  <style>
+    body { font-family: Arial, sans-serif; margin: 0; padding: 0; background: #f5f5f5; }
+    header { display: flex; justify-content: space-between; align-items: center; padding: 10px 20px; background: #ddd; }
+    .factions, .resources { display: flex; align-items: center; }
+    .faction, .resource { margin-right: 20px; text-align: center; }
+    .faction img, .resource img { width: 50px; height: 50px; }
+    .faction-name { font-weight: bold; margin-top: 5px; }
+    .param-controls { display: flex; justify-content: center; align-items: center; margin-top: 5px; }
+    .param-controls button { margin: 0 5px; padding: 2px 8px; font-size: 18px; }
+    
+    #game { padding: 20px; }
+    #parameters, #faction-buttons, #log { margin-bottom: 20px; }
+    #log { background: #fff; padding: 10px; border-radius: 5px; height: 200px; overflow-y: auto; box-shadow: inset 0 0 5px rgba(0,0,0,0.1);}
+    .hidden { display: none; }
+    button { margin: 5px; padding: 8px 12px; }
+  </style>
+</head>
+<body>
+
+<header>
+  <div class="factions">
+    <div class="faction" id="humains-section">
+      <img src="images/humains.png" alt="Humains">
+      <div class="faction-name">Humains</div>
+      <div class="param-controls">
+        <button onclick="changeParam('humains', -1)">-</button>
+        <span id="humains">0</span>
+        <button onclick="changeParam('humains', 1)">+</button>
+      </div>
+    </div>
+    <div class="faction" id="elfes-section">
+      <img src="images/elfes.png" alt="Elfes">
+      <div class="faction-name">Elfes</div>
+      <div class="param-controls">
+        <button onclick="changeParam('elfes', -1)">-</button>
+        <span id="elfes">0</span>
+        <button onclick="changeParam('elfes', 1)">+</button>
+      </div>
+    </div>
+    <div class="faction" id="nains-section">
+      <img src="images/nains.png" alt="Nains">
+      <div class="faction-name">Nains</div>
+      <div class="param-controls">
+        <button onclick="changeParam('nains', -1)">-</button>
+        <span id="nains">0</span>
+        <button onclick="changeParam('nains', 1)">+</button>
+      </div>
+    </div>
+    <div class="faction" id="marches-section">
+      <img src="images/marches.png" alt="Marché">
+      <div class="faction-name">Marché</div>
+      <div class="param-controls">
+        <button onclick="changeParam('marches', -1)">-</button>
+        <span id="marches">0</span>
+        <button onclick="changeParam('marches', 1)">+</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="resources">
+    <div class="resource">
+      <img src="images/or.png" alt="Or">
+      <div>Or: <span id="or">0</span></div>
+    </div>
+    <div class="resource">
+      <img src="images/lingot.png" alt="Lingot">
+      <div>Lingots: <span id="lingots">0</span></div>
+    </div>
+  </div>
+</header>
+
+<div id="game">
+  <button id="new-game">Nouvelle Partie</button>
+  <button id="new-turn" class="hidden">Nouveau Tour</button>
+  <button id="end-turn" class="hidden">Fin du Tour</button>
+
+  <div id="faction-buttons" class="hidden">
+    <h3>Choisissez une faction :</h3>
+    <button onclick="chooseFaction('humains')">Humains</button>
+    <button onclick="chooseFaction('elfes')">Elfes</button>
+    <button onclick="chooseFaction('nains')">Nains</button>
+    <button onclick="chooseFaction('marches')">Marché</button>
+  </div>
+
+  <div id="log"></div>
+</div>
+
+<script>
+let params = { or: 0, lingots: 0, humains: 0, elfes: 0, nains: 0, marches: 0 };
+
+document.getElementById('new-game').addEventListener('click', () => {
+  resetParams();
+  log("Nouvelle partie commencée !");
+  document.getElementById('new-turn').classList.remove('hidden');
+  document.getElementById('end-turn').classList.add('hidden');
+});
+
+function resetParams() {
+  for (let key in params) {
+    params[key] = 0;
+  }
+  updateDisplay();
+  clearLog();
+}
+
+function changeParam(param, value) {
+  params[param] = Math.max(0, params[param] + value);
+  updateDisplay();
+}
+
+function updateDisplay() {
+  for (let key in params) {
+    document.getElementById(key).innerText = params[key];
+  }
+}
+
+document.getElementById('new-turn').addEventListener('click', () => {
+  document.getElementById('faction-buttons').classList.remove('hidden');
+  updateButtonVisibility('newTurn');
+});
+
+document.getElementById('end-turn').addEventListener('click', () => {
+  checkForLingot();
+  document.getElementById('faction-buttons').classList.add('hidden');
+  updateButtonVisibility('endTurn');
+  log("Fin du tour.");
+});
+
+function chooseFaction(faction) {
+  params[faction]++;
+  updateDisplay();
+  document.getElementById('faction-buttons').classList.add('hidden');
+  performAction(faction);
+  if (params[faction] >= 6) {
+    log(`Votre ${faction} est à 6 ou plus ! Action effectuée une seconde fois automatiquement.`);
+    performAction(faction);
+  }
+}
+
+function performAction(faction) {
+  if (faction === 'humains') {
+    rollDice(2);
+  } else if (faction === 'elfes') {
+    params['or'] += params['elfes'];
+    log(`Vous gagnez ${params['elfes']} ors grâce aux Elfes.`);
+  } else if (faction === 'nains') {
+    params['or'] += 2;
+    log(`Détruisez une tuile révélée et ajoutez 2 ors.`);
+  } else if (faction === 'marches') {
+    log(`Détruisez 2 cartes de marché.`);
+    rollDice(1);
+  }
+  updateDisplay();
+}
+
+function rollDice(times) {
+  for (let i = 0; i < times; i++) {
+    let roll = Math.ceil(Math.random() * 6);
+    if (roll <= 2) {
+      params['or'] += 1;
+      log("Dé : +1 or");
+    } else if (roll <= 4) {
+      params['or'] += 2;
+      log("Dé : +2 ors");
+    } else if (roll == 5) {
+      params['or'] += 2;
+      log("Dé : Caisse (+2 ors)");
+    } else {
+      log("Dé : Jeton Magie - révélez une tuile et relancez.");
+      rollDice(1);
+    }
+  }
+  updateDisplay();
+}
+
+function checkForLingot() {
+  let lingotsGagnes = 0;
+  while (params['or'] >= 7) {
+    params['or'] -= 7;
+    params['lingots']++;
+    lingotsGagnes++;
+  }
+  if (lingotsGagnes > 0) {
+    log(`Vous avez fabriqué ${lingotsGagnes} lingot(s) !`);
+  }
+  updateDisplay();
+}
+
+function updateButtonVisibility(state) {
+  if (state === 'newTurn') {
+    document.getElementById('new-turn').classList.add('hidden');
+    document.getElementById('end-turn').classList.remove('hidden');
+  } else if (state === 'endTurn') {
+    document.getElementById('new-turn').classList.remove('hidden');
+    document.getElementById('end-turn').classList.add('hidden');
+  }
+}
+
+function log(message) {
+  const logDiv = document.getElementById('log');
+  const entry = document.createElement('div');
+  entry.className = 'log-entry';
+  entry.textContent = message;
+  logDiv.appendChild(entry);
+  logDiv.scrollTop = logDiv.scrollHeight;
+}
+
+function clearLog() {
+  document.getElementById('log').innerHTML = "";
+}
+</script>
+
+</body>
+</html>
